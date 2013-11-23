@@ -1,9 +1,6 @@
 #
-# (C) Copyright 2000-2003
+# (C) Copyright 2000-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
-#
-# (C) Copyright 2008
-# Guennadi Liakhovetki, DENX Software Engineering, <lg@denx.de>
 #
 # See file CREDITS for list of people who contributed to this
 # project.
@@ -26,30 +23,24 @@
 
 include $(TOPDIR)/config.mk
 
-LIB	= $(obj)lib$(SOC).o
+LIB	= $(obj)lib$(BOARD).o
 
-COBJS-y	:= timer.o
-COBJS-y	+= cpu.o
-COBJS-y	+= ddrc.o
-COBJS-y	+= slcr.o
-ifneq ($(CONFIG_EZYNQ),)
-COBJS-y	+= ezynq.o
-endif
+COBJS-y	:= board.o
 
-
-COBJS	:= $(COBJS-y)
+COBJS	:= $(sort $(COBJS-y))
 
 SRCS	:= $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS))
 
-all:	$(obj)gen.stamp $(obj).depend $(LIB)
-
-$(LIB): $(OBJS)
+$(LIB):	$(obj).depend $(OBJS)
 	$(call cmd_link_o_target, $(OBJS))
 
-$(obj)gen.stamp: $(SRCTREE)/include/autoconf.mk
-	$(EZYNQCFG) -c $(SRCTREE)/include/autoconf.mk --lowlevel ezynq.c
-	touch $(obj)gen.stamp
+clean:
+	rm -f $(OBJS)
+
+distclean:	clean
+	rm -f $(LIB) core *.bak $(obj).depend
+
 #########################################################################
 
 # defines $(obj).depend target

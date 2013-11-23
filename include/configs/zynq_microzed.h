@@ -15,10 +15,11 @@
  * MA 02111-1307 USA
  */
 
-#ifndef __CONFIG_ZYNQ_ZED_H
-#define __CONFIG_ZYNQ_ZED_H
+#ifndef __CONFIG_ZYNQ_MICROZED_H
+#define __CONFIG_ZYNQ_MICROZED_H
 
-#define PHYS_SDRAM_1_SIZE (512 * 1024 * 1024) 
+/*#define PHYS_SDRAM_1_SIZE (512 * 1024 * 1024) */
+#define PHYS_SDRAM_1_SIZE (1024 * 1024 * 1024)
 
 #define CONFIG_ZYNQ_SERIAL_UART1
 #if 1
@@ -38,9 +39,9 @@
 #undef CONFIG_IPADDR
 #undef CONFIG_SERVERIP
 
-#include <configs/ezynq/ezynq_MT41J128M16HA15E.h>  /* should be before zed_ezynq.h as it overwrites DDR3L with DDR3 */
-#include <configs/ezynq/ezynq_XC7Z020_1CLG484.h>
-#include <configs/ezynq/ezynq_zed.h>
+#include <configs/ezynq/ezynq_MT41K256M16RE125.h>  /* should be before zed_ezynq.h as it overwrites DDR3L with DDR3 */
+#include <configs/ezynq/ezynq_XC7Z010_1CLG400.h>
+#include <configs/ezynq/ezynq_microzed.h>
 
 #if 0
   #undef CONFIG_EZYNQ_BOOT_DEBUG            /* configure UARTx and send register dumps there.*/
@@ -63,7 +64,7 @@
 #undef CONFIG_SYS_TEXT_BASE
 
 #define CONFIG_BOOTDELAY	1 /* -1 to Disable autoboot */
-#define CONFIG_SYS_PROMPT		"zedboard> "
+#define CONFIG_SYS_PROMPT		"microzed-u-boot> "
 
 
 #define CONFIG_SYS_SDRAM_BASE		0x00000000 /* Physical start address of SDRAM. _Must_ be 0 here. */
@@ -119,7 +120,7 @@
 	"devicetree_size=0x20000\0"	\
 	"ramdisk_size=0x5E0000\0"	\
 	"fdt_high=0x20000000\0"	\
-	"initrd_high=0xFFFFFFFF\0"	\
+	"initrd_high=0x20000000\0"	\
 	"mmc_loadbit_fat=echo Loading bitstream from SD/MMC/eMMC to RAM.. && " \
 		"mmcinfo && " \
 		"fatload mmc 0 ${loadbit_addr} ${bitstream_image} && " \
@@ -137,4 +138,4 @@
 		"nand read 0x2000000 0x620000 ${ramdisk_size} && " \
 		"bootm 0x3000000 0x2000000 0x2A00000\0"
 /*  */
-#endif /* __CONFIG_ZYNQ_ZED_H */
+#endif /* __CONFIG_ZYNQ_MICROZED_H */

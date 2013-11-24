@@ -77,7 +77,9 @@ SECTIONS
 	}
 
 	_end = .;
-
+	.rbl : {
+	     KEEP(*(.rbl));
+	}
 	/*
 	 * Deprecated: this MMU section is used by pxa at present but
 	 * should not be used by new boards/CPUs.
@@ -106,7 +108,6 @@ SECTIONS
 	.bss_end __bss_limit (OVERLAY) : {
 		KEEP(*(.__bss_end));
 	}
-
 	/DISCARD/ : { *(.dynsym) }
 	/DISCARD/ : { *(.dynstr*) }
 	/DISCARD/ : { *(.dynamic*) }
@@ -115,4 +116,5 @@ SECTIONS
 	/DISCARD/ : { *(.gnu*) }
 	/DISCARD/ : { *(.ARM.exidx*) }
 	/DISCARD/ : { *(.gnu.linkonce.armexidx.*) }
+
 }

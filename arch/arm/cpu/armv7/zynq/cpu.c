@@ -28,7 +28,7 @@
 void lowlevel_init(void)
 {
 }
-
+#ifndef CONFIG_EZYNQ
 int arch_cpu_init(void)
 {
 	zynq_slcr_unlock();
@@ -57,7 +57,7 @@ int arch_cpu_init(void)
 
 	return 0;
 }
-
+#endif
 void reset_cpu(ulong addr)
 {
 	zynq_slcr_cpu_reset();

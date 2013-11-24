@@ -1,12 +1,13 @@
 /*
  * (C) Copyright 2012 Xilinx
+ * (C) Copyright 2013 Elphel
  *
- * Configuration for Zynq Evaluation and Development Board - ZedBoard
+ * Configuration for Elphel393 Board
  * See zynq_common.h for Zynq common configs
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
+ * published by the Free Software Foundation; either version 3 of
  * the License, or (at your option) any later version.
  *
  * You should have received a copy of the GNU General Public License
@@ -15,12 +16,13 @@
  * MA 02111-1307 USA
  */
 
-#ifndef __CONFIG_ZYNQ_ZED_H
-#define __CONFIG_ZYNQ_ZED_H
+#ifndef __CONFIG_ELPHEL393_H
+#define __CONFIG_ELPHEL393_H
 
-#define PHYS_SDRAM_1_SIZE (512 * 1024 * 1024) 
+/*#define PHYS_SDRAM_1_SIZE (512 * 1024 * 1024) */
+#define PHYS_SDRAM_1_SIZE (1024 * 1024 * 1024)
 
-#define CONFIG_ZYNQ_SERIAL_UART1
+#define CONFIG_ZYNQ_SERIAL_UART0
 #if 1
 //#define CONFIG_ZYNQ_GEM0
 #define CONFIG_ZYNQ_GEM_PHY_ADDR0	0
@@ -29,22 +31,23 @@
 #define CONFIG_SYS_NO_FLASH
 
 #define CONFIG_ZYNQ_SDHCI0
-/* #define CONFIG_ZYNQ_SPI */
+//#define CONFIG_ZYNQ_SPI
 
 /* #define CONFIG_NAND_ZYNQ */
+
+/* With NAND 0x31048. no memtest - 0x30d20, undef CONFIG_CMDLINE_EDITING - 0x30468 */
+
+
 #undef CONFIG_SYS_TEXT_BASE
 #include <configs/zynq_common.h>
 
 #undef CONFIG_IPADDR
 #undef CONFIG_SERVERIP
 
-#include <configs/ezynq/ezynq_MT41J128M16HA15E.h>  /* should be before zed_ezynq.h as it overwrites DDR3L with DDR3 */
-#include <configs/ezynq/ezynq_XC7Z020_1CLG484.h>
-#include <configs/ezynq/ezynq_zed.h>
+#include <configs/ezynq/ezynq_MT41K256M16HA107.h>  /* should be before zed_ezynq.h as it overwrites DDR3L with DDR3 */
+#include <configs/ezynq/ezynq_XC7Z030_1FBG484C.h>
+#include <configs/ezynq/ezynq_elphel393.h>
 
-#if 0
-  #undef CONFIG_EZYNQ_BOOT_DEBUG            /* configure UARTx and send register dumps there.*/
-#endif
 #define CONFIG_CMD_MEMTEST
 
 /* twice slower */
@@ -63,22 +66,18 @@
 #undef CONFIG_SYS_TEXT_BASE
 
 #define CONFIG_BOOTDELAY	1 /* -1 to Disable autoboot */
-#define CONFIG_SYS_PROMPT		"zedboard> "
+#define CONFIG_SYS_PROMPT		"elphel393-u-boot> "
 
 
 #define CONFIG_SYS_SDRAM_BASE		0x00000000 /* Physical start address of SDRAM. _Must_ be 0 here. */
 #define CONFIG_ENV_SIZE		        1400
-#if 0
-  #define CONFIG_SYS_TEXT_BASE		0x04000000 /*with 0x04000000 - does not get to the low_Level_init? */
-#else
-#define CONFIG_SYS_TEXT_BASE		0x00000000
-#endif
+#define CONFIG_SYS_TEXT_BASE		0x00000000 //0x04000000 with 0x04000000 - does not get to the low_Level_init?
 /*
 #define CONFIG_EZYNQ_SKIP_DDR
 */
 #define CONFIG_EZYNQ_SKIP_CLK
 
-/* undefs */
+//undefs
 
 /* undefs */
 /*#undef CONFIG_FS_FAT */
@@ -105,6 +104,7 @@
 #undef DEBUG
 #undef CONFIG_AUTO_COMPLETE
 #undef CONFIG_SYS_LONGHELP
+/*#undef CONFIG_CMDLINE_EDITING */
 
 /* redefine env settings*/
 #undef CONFIG_EXTRA_ENV_SETTINGS
@@ -119,7 +119,7 @@
 	"devicetree_size=0x20000\0"	\
 	"ramdisk_size=0x5E0000\0"	\
 	"fdt_high=0x20000000\0"	\
-	"initrd_high=0xFFFFFFFF\0"	\
+	"initrd_high=0x20000000\0"	\
 	"mmc_loadbit_fat=echo Loading bitstream from SD/MMC/eMMC to RAM.. && " \
 		"mmcinfo && " \
 		"fatload mmc 0 ${loadbit_addr} ${bitstream_image} && " \
@@ -137,4 +137,4 @@
 		"nand read 0x2000000 0x620000 ${ramdisk_size} && " \
 		"bootm 0x3000000 0x2000000 0x2A00000\0"
 /*  */
-#endif /* __CONFIG_ZYNQ_ZED_H */
+#endif /* __CONFIG_ELPHEL393_H */

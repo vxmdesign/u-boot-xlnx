@@ -631,7 +631,8 @@ updater:
 depend dep:	$(TIMESTAMP_FILE) $(VERSION_FILE) \
 		$(obj)include/autoconf.mk \
 		$(obj)include/generated/generic-asm-offsets.h \
-		$(obj)include/generated/asm-offsets.h
+		$(obj)include/generated/asm-offsets.h \
+		autogen
 		for dir in $(SUBDIRS) $(CPUDIR) $(LDSCRIPT_MAKEFILE_DIR) ; do \
 			$(MAKE) -C $$dir _depend ; done
 
@@ -641,6 +642,12 @@ TAG_SUBDIRS += include
 
 FIND := find
 FINDFLAGS := -L
+
+autogen: 
+ifneq ($(CONFIG_EZYNQ),)
+	$(EZYNQCFG) -c $(obj)include/autoconf.mk --lowlevel $(obj)arch/arm/cpu/armv7/zynq/ezynq.c
+endif
+
 
 checkstack:
 		$(CROSS_COMPILE)objdump -d $(obj)u-boot \
@@ -844,6 +851,8 @@ clean:
 	@rm -f $(obj)include/bmp_logo_data.h
 	@rm -f $(obj)lib/asm-offsets.s
 	@rm -f $(obj)include/generated/asm-offsets.h
+	@rm -f $(obj)arch/arm/cpu/armv7/zynq/ezynq.c
+	@rm -f $(obj)arch/arm/cpu/armv7/zynq/gen.stamp
 	@rm -f $(obj)$(CPUDIR)/$(SOC)/asm-offsets.s
 	@rm -f $(TIMESTAMP_FILE) $(VERSION_FILE)
 	@$(MAKE) -s -C doc/DocBook/ cleandocs

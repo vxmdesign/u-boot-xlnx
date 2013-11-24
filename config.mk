@@ -137,6 +137,8 @@ endif
 cc-version = $(shell $(SHELL) $(SRCTREE)/tools/gcc-version.sh $(CC))
 binutils-version = $(shell $(SHELL) $(SRCTREE)/tools/binutils-version.sh $(AS))
 
+EZYNQCFG = $(SRCTREE)/tools/ezynq/ezynqcfg.py
+
 #
 # Include the make variables (CC, etc...)
 #

@@ -591,6 +591,9 @@ if (args.lowlevel):
 #segments.append({'TO':len(reg_sets),'RBL':False,'NAME':'GPIO','TITLE':'GPIO outputs setup'})
     
     u_boot.make_arch_cpu_init()
-    u_boot.make_rbl_list(reg_sets[:num_rbl_regs])
+    res44 = 0
+    if 'CONFIG_EZYNQ_RESERVED44' in raw_options: res44= int(raw_options['CONFIG_EZYNQ_RESERVED44'],0)    
+    user_def =  int(raw_options['CONFIG_EZYNQ_BOOT_USERDEF'],0) # user_def 
+    u_boot.make_rbl_list(reg_sets[:num_rbl_regs], res44 , user_def)
     u_boot.output_c_file(args.lowlevel)
 #    print u_boot.get_c_file()

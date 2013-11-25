@@ -589,18 +589,25 @@ void report_training(void)
 
         self.sections.append('ddrc_training')
 
-    def make_rbl_list(self,reg_set):
+    def make_rbl_list(self,reg_set, res44, user_def):
         self.cfile+=''' /*rbl structure */
 typedef struct{
   unsigned int reg;
   unsigned int val;
 }rblmap;
 
+typedef struct{
+  unsigned int magic;
+  unsigned int res44;
+  unsigned int user_def;
+}rblhead;
+
 rblmap rbl_map[] __attribute__ ((unused,section(".rbl"))) = {
 '''
         self._add_rbl_table(reg_set)
         self.cfile+=''' }; 
 '''
+        self.cfile+='rblhead rbl_head[] __attribute__ ((unused,section(".rbl"))) = {0x%08x, 0x%08x, 0x%08x};\n'%(0xdeadbeef,res44,user_def)
     def make_arch_cpu_init(self):
         self.cfile+='''/* Initialize clocks, DDR memory, copy OCM to DDR */        
 int arch_cpu_init(void)

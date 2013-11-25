@@ -414,6 +414,7 @@ ALL-$(CONFIG_NAND_U_BOOT) += $(obj)u-boot-nand.bin
 ALL-$(CONFIG_ONENAND_U_BOOT) += $(obj)u-boot-onenand.bin
 ALL-$(CONFIG_SPL) += $(obj)spl/u-boot-spl.bin
 ALL-$(CONFIG_OF_SEPARATE) += $(obj)u-boot.dtb $(obj)u-boot-dtb.bin
+ALL-$(CONFIG_EZYNQ) += $(obj)boot.bin
 ifneq ($(CONFIG_SPL_TARGET),)
 ALL-$(CONFIG_SPL) += $(obj)$(subst ",,$(CONFIG_SPL_TARGET))
 endif
@@ -491,7 +492,11 @@ $(obj)u-boot.sha1:	$(obj)u-boot.bin
 $(obj)u-boot.dis:	$(obj)u-boot
 		$(OBJDUMP) -d $< > $@
 
-
+$(obj)boot.bin: 	$(obj)u-boot
+		$(OBJCOPY) -j .rbl -O binary $(obj)u-boot rbl.bin
+		$(OBJCOPY) -R .rbl ${OBJCFLAGS} -O binary $(obj)u-boot tmp.bin
+		$(obj)tools/zynqimage tmp.bin rbl.bin $(obj)boot.bin
+		rm -f tmp.bin rbl.bin
 
 $(obj)u-boot-with-spl.bin: $(obj)spl/u-boot-spl.bin $(obj)u-boot.bin
 		$(OBJCOPY) ${OBJCFLAGS} --pad-to=$(CONFIG_SPL_PAD_TO) \

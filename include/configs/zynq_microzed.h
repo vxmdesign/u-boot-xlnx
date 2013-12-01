@@ -112,8 +112,8 @@
 #define CONFIG_EXTRA_ENV_SETTINGS	\
 	"ethaddr=00:0a:35:00:01:22\0"	\
 	"kernel_image=uImage\0"	\
-	"ramdisk_image=uramdisk.image.gz\0"	\
-	"devicetree_image=devicetree.dtb\0"	\
+	"ramdisk_image=rootfs.ext2.gz.uboot\0"	\
+	"devicetree_image=uzed.dtb\0"	\
 	"bitstream_image=system.bit.bin\0"	\
 	"loadbit_addr=0x100000\0"	\
 	"kernel_size=0x500000\0"	\

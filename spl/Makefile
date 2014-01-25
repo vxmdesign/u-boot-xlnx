@@ -182,6 +182,7 @@ $(obj)boot.bin : $(obj)u-boot-spl
 		$(OBJCOPY) -j .rbl -O binary $^ rbl.bin
 		$(OBJCOPY) -R .rbl ${OBJFLAGS} -O binary $^ tmp.bin
 		$(OBJTREE)/tools/zynqimage tmp.bin rbl.bin $@
+		cp $(obj)boot.bin ../
 		rm -f tmp.bin rbl.bin
 
 $(obj)u-boot-spl.bin:	$(obj)u-boot-spl

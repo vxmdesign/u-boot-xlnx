@@ -1,28 +1,12 @@
 #
-# (C) Copyright 2000-2012
+# (C) Copyright 2000-2013
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 #
-# See file CREDITS for list of people who contributed to this
-# project.
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as
-# published by the Free Software Foundatio; either version 2 of
-# the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-# MA 02111-1307 USA
+# SPDX-License-Identifier:	GPL-2.0+
 #
 
 VERSION = 2013
-PATCHLEVEL = 07
+PATCHLEVEL = 10
 SUBLEVEL =
 EXTRAVERSION =
 ifneq "$(SUBLEVEL)" ""
@@ -61,13 +45,13 @@ endif
 
 #########################################################################
 #
-# U-boot build supports producing a object files to the separate external
+# U-boot build supports generating object files in a separate external
 # directory. Two use cases are supported:
 #
 # 1) Add O= to the make command line
 # 'make O=/tmp/build all'
 #
-# 2) Set environement variable BUILD_DIR to point to the desired location
+# 2) Set environment variable BUILD_DIR to point to the desired location
 # 'export BUILD_DIR=/tmp/build'
 # 'make'
 #
@@ -75,7 +59,7 @@ endif
 # 'export BUILD_DIR=/tmp/build'
 # './MAKEALL'
 #
-# Command line 'O=' setting overrides BUILD_DIR environent variable.
+# Command line 'O=' setting overrides BUILD_DIR environment variable.
 #
 # When none of the above methods is used the local build is performed and
 # the object files are placed in the source directory.
@@ -118,10 +102,11 @@ endif # ifneq ($(BUILD_DIR),)
 
 OBJTREE		:= $(if $(BUILD_DIR),$(BUILD_DIR),$(CURDIR))
 SPLTREE		:= $(OBJTREE)/spl
+TPLTREE		:= $(OBJTREE)/tpl
 SRCTREE		:= $(CURDIR)
 TOPDIR		:= $(SRCTREE)
 LNDIR		:= $(OBJTREE)
-export	TOPDIR SRCTREE OBJTREE SPLTREE
+export	TOPDIR SRCTREE OBJTREE SPLTREE TPLTREE
 
 MKCONFIG	:= $(SRCTREE)/mkconfig
 export MKCONFIG
@@ -227,7 +212,7 @@ ifndef LDSCRIPT
 		LDSCRIPT_MAKEFILE_DIR =
 	endif
 	ifeq ($(wildcard $(LDSCRIPT)),)
-$(error could not find linker script)
+$(error could not find linker script for $(TOPDIR))
 	endif
 endif
 
@@ -299,6 +284,7 @@ LIBS-y += drivers/pci/libpci.o
 LIBS-y += drivers/pcmcia/libpcmcia.o
 LIBS-y += drivers/power/libpower.o \
 	drivers/power/fuel_gauge/libfuel_gauge.o \
+	drivers/power/mfd/libmfd.o \
 	drivers/power/pmic/libpmic.o \
 	drivers/power/battery/libbattery.o
 LIBS-y += drivers/spi/libspi.o
@@ -338,7 +324,7 @@ LIBS-y += api/libapi.o
 LIBS-y += post/libpost.o
 LIBS-y += test/libtest.o
 
-ifneq ($(CONFIG_AM33XX)$(CONFIG_OMAP34XX)$(CONFIG_OMAP44XX)$(CONFIG_OMAP54XX)$(CONFIG_TI814X),)
+ifneq ($(CONFIG_OMAP_COMMON),)
 LIBS-y += $(CPUDIR)/omap-common/libomap-common.o
 endif
 
@@ -413,8 +399,9 @@ ALL-y += $(obj)u-boot.srec $(obj)u-boot.bin $(obj)System.map
 ALL-$(CONFIG_NAND_U_BOOT) += $(obj)u-boot-nand.bin
 ALL-$(CONFIG_ONENAND_U_BOOT) += $(obj)u-boot-onenand.bin
 ALL-$(CONFIG_SPL) += $(obj)spl/u-boot-spl.bin
+ALL-$(CONFIG_SPL_FRAMEWORK) += $(obj)u-boot.img
+ALL-$(CONFIG_TPL) += $(obj)tpl/u-boot-tpl.bin
 ALL-$(CONFIG_OF_SEPARATE) += $(obj)u-boot.dtb $(obj)u-boot-dtb.bin
-ALL-$(CONFIG_EZYNQ) += $(obj)boot.bin
 ifneq ($(CONFIG_SPL_TARGET),)
 ALL-$(CONFIG_SPL) += $(obj)$(subst ",,$(CONFIG_SPL_TARGET))
 endif
@@ -430,7 +417,7 @@ endif
 
 all:		$(ALL-y) $(SUBDIR_EXAMPLES)
 
-$(obj)u-boot.dtb:	$(obj)u-boot
+$(obj)u-boot.dtb:	checkdtc $(obj)u-boot
 		$(MAKE) -C dts binary
 		mv $(obj)dts/dt.dtb $@
 
@@ -465,13 +452,14 @@ $(obj)u-boot.ldr.srec:	$(obj)u-boot.ldr
 ifndef CONFIG_SYS_UBOOT_START
 CONFIG_SYS_UBOOT_START := 0
 endif
-
+#		-n $(shell sed -n -e 's/.*U_BOOT_VERSION//p' $(VERSION_FILE) | \
+#			sed -e 's/"[	 ]*$$/ for $(BOARD) board"/') \
+#
 $(obj)u-boot.img:	$(obj)u-boot.bin
 		$(obj)tools/mkimage -A $(ARCH) -T firmware -C none \
 		-O u-boot -a $(CONFIG_SYS_TEXT_BASE) \
 		-e $(CONFIG_SYS_UBOOT_START) \
-		-n $(shell sed -n -e 's/.*U_BOOT_VERSION//p' $(VERSION_FILE) | \
-			sed -e 's/"[	 ]*$$/ for $(BOARD) board"/') \
+		-n "$(BOARD) board" \
 		-d $< $@
 
 $(obj)u-boot.imx: $(obj)u-boot.bin depend
@@ -492,17 +480,25 @@ $(obj)u-boot.sha1:	$(obj)u-boot.bin
 $(obj)u-boot.dis:	$(obj)u-boot
 		$(OBJDUMP) -d $< > $@
 
-$(obj)boot.bin: 	$(obj)u-boot
-		$(OBJCOPY) -j .rbl -O binary $(obj)u-boot rbl.bin
-		$(OBJCOPY) -R .rbl ${OBJCFLAGS} -O binary $(obj)u-boot tmp.bin
-		$(obj)tools/zynqimage tmp.bin rbl.bin $(obj)boot.bin
-		rm -f tmp.bin rbl.bin
+# $@ is output, $(1) and $(2) are inputs, $(3) is padded intermediate,
+# $(4) is pad-to
+SPL_PAD_APPEND = \
+		$(OBJCOPY) ${OBJCFLAGS} --pad-to=$(4) -I binary -O binary \
+		$(1) $(obj)$(3); \
+		cat $(obj)$(3) $(2) > $@; \
+		rm $(obj)$(3)
 
-$(obj)u-boot-with-spl.bin: $(obj)spl/u-boot-spl.bin $(obj)u-boot.bin
-		$(OBJCOPY) ${OBJCFLAGS} --pad-to=$(CONFIG_SPL_PAD_TO) \
-			-I binary -O binary $< $(obj)spl/u-boot-spl-pad.bin
-		cat $(obj)spl/u-boot-spl-pad.bin $(obj)u-boot.bin > $@
-		rm $(obj)spl/u-boot-spl-pad.bin
+ifdef CONFIG_TPL
+SPL_PAYLOAD := $(obj)tpl/u-boot-with-tpl.bin
+else
+SPL_PAYLOAD := $(obj)u-boot.bin
+endif
+
+$(obj)u-boot-with-spl.bin: $(obj)spl/u-boot-spl.bin $(SPL_PAYLOAD)
+		$(call SPL_PAD_APPEND,$<,$(SPL_PAYLOAD),spl/u-boot-spl-pad.bin,$(CONFIG_SPL_PAD_TO))
+
+$(obj)tpl/u-boot-with-tpl.bin: $(obj)tpl/u-boot-tpl.bin $(obj)u-boot.bin
+		$(call SPL_PAD_APPEND,$<,$(obj)u-boot.bin,tpl/u-boot-tpl-pad.bin,$(CONFIG_TPL_PAD_TO))
 
 $(obj)u-boot-with-spl.imx: $(obj)spl/u-boot-spl.bin $(obj)u-boot.bin
 		$(MAKE) -C $(SRCTREE)/arch/arm/imx-common \
@@ -628,16 +624,20 @@ $(obj)u-boot-nand.bin:	nand_spl $(obj)u-boot.bin
 $(obj)spl/u-boot-spl.bin:	$(SUBDIR_TOOLS) depend
 		$(MAKE) -C spl all
 
+$(obj)tpl/u-boot-tpl.bin:	$(SUBDIR_TOOLS) depend
+		$(MAKE) -C spl all CONFIG_TPL_BUILD=y
+
 updater:
 		$(MAKE) -C tools/updater all
 
 # Explicitly make _depend in subdirs containing multiple targets to prevent
 # parallel sub-makes creating .depend files simultaneously.
 depend dep:	$(TIMESTAMP_FILE) $(VERSION_FILE) \
+		$(obj)include/spl-autoconf.mk \
+		$(obj)include/tpl-autoconf.mk \
 		$(obj)include/autoconf.mk \
 		$(obj)include/generated/generic-asm-offsets.h \
-		$(obj)include/generated/asm-offsets.h \
-		autogen
+		$(obj)include/generated/asm-offsets.h
 		for dir in $(SUBDIRS) $(CPUDIR) $(LDSCRIPT_MAKEFILE_DIR) ; do \
 			$(MAKE) -C $$dir _depend ; done
 
@@ -647,12 +647,6 @@ TAG_SUBDIRS += include
 
 FIND := find
 FINDFLAGS := -L
-
-autogen: 
-ifneq ($(CONFIG_EZYNQ),)
-	$(EZYNQCFG) -c $(obj)include/autoconf.mk --lowlevel $(obj)arch/arm/cpu/armv7/zynq/ezynq.c
-endif
-
 
 checkstack:
 		$(CROSS_COMPILE)objdump -d $(obj)u-boot \
@@ -695,6 +689,12 @@ checkgcc4:
 		false; \
 	fi
 
+checkdtc:
+	@if test $(call dtc-version) -lt 0104; then \
+		echo '*** Your dtc is too old, please upgrade to dtc 1.4 or newer'; \
+		false; \
+	fi
+
 #
 # Auto-generate the autoconf.mk file (which is included by all makefiles)
 #
@@ -716,12 +716,34 @@ $(obj)include/autoconf.mk: $(obj)include/config.h
 		sed -n -f tools/scripts/define2mk.sed > $@.tmp && \
 	mv $@.tmp $@
 
+# Auto-generate the spl-autoconf.mk file (which is included by all makefiles for SPL)
+$(obj)include/tpl-autoconf.mk: $(obj)include/config.h
+	@$(XECHO) Generating $@ ; \
+	set -e ; \
+	: Extract the config macros ; \
+	$(CPP) $(CFLAGS) -DCONFIG_TPL_BUILD  -DCONFIG_SPL_BUILD\
+			-DDO_DEPS_ONLY -dM include/common.h | \
+	sed -n -f tools/scripts/define2mk.sed > $@.tmp && \
+	mv $@.tmp $@
+
+$(obj)include/spl-autoconf.mk: $(obj)include/config.h
+	@$(XECHO) Generating $@ ; \
+	set -e ; \
+	: Extract the config macros ; \
+	$(CPP) $(CFLAGS) -DCONFIG_SPL_BUILD -DDO_DEPS_ONLY -dM include/common.h | \
+	sed -n -f tools/scripts/define2mk.sed > $@.tmp && \
+	mv $@.tmp $@
+
 $(obj)include/generated/generic-asm-offsets.h:	$(obj)include/autoconf.mk.dep \
+	$(obj)include/spl-autoconf.mk \
+	$(obj)include/tpl-autoconf.mk \
 	$(obj)lib/asm-offsets.s
 	@$(XECHO) Generating $@
 	tools/scripts/make-asm-offsets $(obj)lib/asm-offsets.s $@
 
 $(obj)lib/asm-offsets.s:	$(obj)include/autoconf.mk.dep \
+	$(obj)include/spl-autoconf.mk \
+	$(obj)include/tpl-autoconf.mk \
 	$(src)lib/asm-offsets.c
 	@mkdir -p $(obj)lib
 	$(CC) -DDO_DEPS_ONLY \
@@ -729,11 +751,15 @@ $(obj)lib/asm-offsets.s:	$(obj)include/autoconf.mk.dep \
 		-o $@ $(src)lib/asm-offsets.c -c -S
 
 $(obj)include/generated/asm-offsets.h:	$(obj)include/autoconf.mk.dep \
+	$(obj)include/spl-autoconf.mk \
+	$(obj)include/tpl-autoconf.mk \
 	$(obj)$(CPUDIR)/$(SOC)/asm-offsets.s
 	@$(XECHO) Generating $@
 	tools/scripts/make-asm-offsets $(obj)$(CPUDIR)/$(SOC)/asm-offsets.s $@
 
-$(obj)$(CPUDIR)/$(SOC)/asm-offsets.s:	$(obj)include/autoconf.mk.dep
+$(obj)$(CPUDIR)/$(SOC)/asm-offsets.s:	$(obj)include/autoconf.mk.dep \
+	$(obj)include/spl-autoconf.mk \
+	$(obj)include/tpl-autoconf.mk
 	@mkdir -p $(obj)$(CPUDIR)/$(SOC)
 	if [ -f $(src)$(CPUDIR)/$(SOC)/asm-offsets.c ];then \
 		$(CC) -DDO_DEPS_ONLY \
@@ -805,14 +831,16 @@ include/license.h: tools/bin2header COPYING
 unconfig:
 	@rm -f $(obj)include/config.h $(obj)include/config.mk \
 		$(obj)board/*/config.tmp $(obj)board/*/*/config.tmp \
-		$(obj)include/autoconf.mk $(obj)include/autoconf.mk.dep
+		$(obj)include/autoconf.mk $(obj)include/autoconf.mk.dep \
+		$(obj)include/spl-autoconf.mk \
+		$(obj)include/tpl-autoconf.mk
 
 %_config::	unconfig
 	@$(MKCONFIG) -A $(@:_config=)
 
 sinclude $(obj).boards.depend
 $(obj).boards.depend:	boards.cfg
-	@awk '(NF && $$1 !~ /^#/) { print $$1 ": " $$1 "_config; $$(MAKE)" }' $< > $@
+	@awk '(NF && $$1 !~ /^#/) { print $$7 ": " $$7 "_config; $$(MAKE)" }' $< > $@
 
 #
 # Functions to generate common board directory names
@@ -841,7 +869,7 @@ clean:
 	       $(obj)tools/gdb/{astest,gdbcont,gdbsend}			  \
 	       $(obj)tools/gen_eth_addr    $(obj)tools/img2srec		  \
 	       $(obj)tools/mk{env,}image   $(obj)tools/mpc86x_clk	  \
-	       $(obj)tools/mk{smdk5250,}spl				  \
+	       $(obj)tools/mk{$(BOARD),}spl				  \
 	       $(obj)tools/mxsboot					  \
 	       $(obj)tools/ncb		   $(obj)tools/ubsha1		  \
 	       $(obj)tools/kernel-doc/docproc				  \
@@ -856,16 +884,18 @@ clean:
 	@rm -f $(obj)include/bmp_logo_data.h
 	@rm -f $(obj)lib/asm-offsets.s
 	@rm -f $(obj)include/generated/asm-offsets.h
-	@rm -f $(obj)arch/arm/cpu/armv7/zynq/ezynq.c
+	@rm -f $(obj)arch/arm/cpu/armv7/zynq/zynq_spl.c
 	@rm -f $(obj)arch/arm/cpu/armv7/zynq/gen.stamp
 	@rm -f $(obj)$(CPUDIR)/$(SOC)/asm-offsets.s
 	@rm -f $(TIMESTAMP_FILE) $(VERSION_FILE)
 	@$(MAKE) -s -C doc/DocBook/ cleandocs
+	@$(MAKE) -s -C spl clean
 	@find $(OBJTREE) -type f \
 		\( -name 'core' -o -name '*.bak' -o -name '*~' -o -name '*.su' \
 		-o -name '*.o'	-o -name '*.a' -o -name '*.exe' \
 		-o -name '*.cfgtmp' \) -print \
 		| xargs rm -f
+
 
 # Removes everything not needed for testing u-boot
 tidy:	clean
@@ -893,6 +923,8 @@ clobber:	tidy
 	@rm -f $(obj)nand_spl/{u-boot-nand_spl.lds,u-boot-spl,u-boot-spl.map}
 	@rm -f $(obj)spl/{u-boot-spl,u-boot-spl.bin,u-boot-spl.map}
 	@rm -f $(obj)spl/u-boot-spl.lds
+	@rm -f $(obj)tpl/{u-boot-tpl,u-boot-tpl.bin,u-boot-tpl.map}
+	@rm -f $(obj)tpl/u-boot-spl.lds
 	@rm -f $(obj)MLO MLO.byteswap
 	@rm -f $(obj)SPL
 	@rm -f $(obj)tools/xway-swap-bytes

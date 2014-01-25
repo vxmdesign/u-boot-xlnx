@@ -6,23 +6,7 @@
  * Based on Xilinx gmac driver:
  * (C) Copyright 2011 Xilinx
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -101,6 +85,11 @@
 #define ZYNQ_GEM_TXBUF_FRMLEN_MASK	0x000007ff
 #define ZYNQ_GEM_TXBUF_EXHAUSTED	0x08000000
 #define ZYNQ_GEM_TXBUF_UNDERRUN		0x10000000
+
+/* Clock frequencies for different speeds */
+#define ZYNQ_GEM_FREQUENCY_10	2500000UL
+#define ZYNQ_GEM_FREQUENCY_100	25000000UL
+#define ZYNQ_GEM_FREQUENCY_1000	125000000UL
 
 /* Device registers */
 struct zynq_gem_regs {
@@ -305,7 +294,8 @@ static int zynq_gem_setup_mac(struct eth_device *dev)
 
 static int zynq_gem_init(struct eth_device *dev, bd_t * bis)
 {
-	u32 i, rclk, clk = 0;
+	u32 i;
+	unsigned long clk_rate = 0;
 	struct phy_device *phydev;
 	const u32 stat_size = (sizeof(struct zynq_gem_regs) -
 				offsetof(struct zynq_gem_regs, stat)) / 4;
@@ -375,30 +365,31 @@ static int zynq_gem_init(struct eth_device *dev, bd_t * bis)
 	phy_config(phydev);
 	phy_startup(phydev);
 
+	if (!phydev->link) {
+		printf("%s: No link.\n", phydev->dev->name);
+		return -1;
+	}
+
 	switch (phydev->speed) {
 	case SPEED_1000:
 		writel(ZYNQ_GEM_NWCFG_INIT | ZYNQ_GEM_NWCFG_SPEED1000,
 		       &regs->nwcfg);
-		rclk = (0 << 4) | (1 << 0);
-		clk = (1 << 20) | (8 << 8) | (0 << 4) | (1 << 0);
+		clk_rate = ZYNQ_GEM_FREQUENCY_1000;
 		break;
 	case SPEED_100:
 		clrsetbits_le32(&regs->nwcfg, ZYNQ_GEM_NWCFG_SPEED1000,
 				ZYNQ_GEM_NWCFG_INIT | ZYNQ_GEM_NWCFG_SPEED100);
-		rclk = 1 << 0;
-		clk = (5 << 20) | (8 << 8) | (0 << 4) | (1 << 0);
+		clk_rate = ZYNQ_GEM_FREQUENCY_100;
 		break;
 	case SPEED_10:
-		rclk = 1 << 0;
-		/* FIXME untested */
-		clk = (5 << 20) | (8 << 8) | (0 << 4) | (1 << 0);
+		clk_rate = ZYNQ_GEM_FREQUENCY_10;
 		break;
 	}
 
 	/* Change the rclk and clk only not using EMIO interface */
 	if (!priv->emio)
 		zynq_slcr_gem_clk_setup(dev->iobase !=
-					ZYNQ_GEM_BASEADDR0, rclk, clk);
+					ZYNQ_GEM_BASEADDR0, clk_rate);
 
 #else
 	/* PHY Setup */

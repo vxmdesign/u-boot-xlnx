@@ -1,29 +1,14 @@
 /*
  * Copyright (c) 2013 Xilinx Inc.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
 #include <asm/io.h>
 #include <malloc.h>
 #include <asm/arch/hardware.h>
+#include <asm/arch/clk.h>
 
 #define SLCR_LOCK_MAGIC		0x767B
 #define SLCR_UNLOCK_MAGIC	0xDF0D
@@ -150,8 +135,10 @@ void zynq_slcr_cpu_reset(void)
 }
 
 /* Setup clk for network */
-void zynq_slcr_gem_clk_setup(u32 gem_id, u32 rclk, u32 clk)
+void zynq_slcr_gem_clk_setup(u32 gem_id, unsigned long clk_rate)
 {
+	int ret;
+
 	zynq_slcr_unlock();
 
 	if (gem_id > 1) {
@@ -159,26 +146,20 @@ void zynq_slcr_gem_clk_setup(u32 gem_id, u32 rclk, u32 clk)
 		goto out;
 	}
 
+	ret = zynq_clk_set_rate(gem0_clk + gem_id, clk_rate);
+	if (ret)
+		goto out;
+
 	if (gem_id) {
-		/* Set divisors for appropriate frequency in GEM_CLK_CTRL */
-		writel(clk, &slcr_base->gem1_clk_ctrl);
 		/* Configure GEM_RCLK_CTRL */
-		writel(rclk, &slcr_base->gem1_rclk_ctrl);
+		writel(1, &slcr_base->gem1_rclk_ctrl);
 	} else {
-		/* Set divisors for appropriate frequency in GEM_CLK_CTRL */
-		writel(clk, &slcr_base->gem0_clk_ctrl);
 		/* Configure GEM_RCLK_CTRL */
-		writel(rclk, &slcr_base->gem0_rclk_ctrl);
+		writel(1, &slcr_base->gem0_rclk_ctrl);
 	}
 	udelay(100000);
 out:
 	zynq_slcr_lock();
-}
-
-u32 zynq_slcr_get_lqspi_clk_ctrl(void)
-{
-	/* Get the lqspi_clkk_ctrl register value */
-	return readl(&slcr_base->lqspi_clk_ctrl);
 }
 
 void zynq_slcr_devcfg_disable(void)

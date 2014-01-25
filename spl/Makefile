@@ -158,11 +158,17 @@ $(OBJTREE)/MLO.byteswap: $(obj)u-boot-spl.bin
 $(OBJTREE)/SPL : $(obj)u-boot-spl.bin depend
 		$(MAKE) -C $(SRCTREE)/arch/arm/imx-common $@
 
+ifdef CONFIG_EZYNQ
+ALL-y += $(obj)boot.bin
+else
 ALL-y	+= $(obj)u-boot-spl.bin
+endif
 
 ifdef CONFIG_SAMSUNG
 ALL-y	+= $(obj)$(BOARD)-spl.bin
 endif
+
+
 
 all:	$(ALL-y)
 
@@ -171,6 +177,12 @@ $(obj)$(BOARD)-spl.bin: $(obj)u-boot-spl.bin
 	$(OBJTREE)/tools/mk$(BOARD)spl \
 		$(obj)u-boot-spl.bin $(obj)$(BOARD)-spl.bin
 endif
+
+$(obj)boot.bin : $(obj)u-boot-spl 
+		$(OBJCOPY) -j .rbl -O binary $^ rbl.bin
+		$(OBJCOPY) -R .rbl ${OBJFLAGS} -O binary $^ tmp.bin
+		$(OBJTREE)/tools/zynqimage tmp.bin rbl.bin $@
+		rm -f tmp.bin rbl.bin
 
 $(obj)u-boot-spl.bin:	$(obj)u-boot-spl
 	$(OBJCOPY) $(OBJCFLAGS) -O binary $< $@
@@ -197,3 +209,15 @@ depend:	$(obj).depend
 
 # defines $(obj).depend target
 include $(SRCTREE)/rules.mk
+
+clean:
+	rm -rf ./common
+	rm -rf ./spl
+	rm -rf ./arch
+	rm -rf ./board
+	rm -rf ./disk
+	rm -rf ./drivers	
+	rm -rf ./fs
+	rm -rf ./lib
+	rm -rf ./spl
+	rm -rf u-boot*

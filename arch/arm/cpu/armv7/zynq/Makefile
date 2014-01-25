@@ -29,18 +29,26 @@ include $(TOPDIR)/config.mk
 LIB	= $(obj)lib$(SOC).o
 
 COBJS-y	:= timer.o
-COBJS-y	+= cpu.o
 COBJS-y	+= ddrc.o
 COBJS-y	+= slcr.o
-ifneq ($(CONFIG_EZYNQ),)
-COBJS-y	+= ezynq.o
+COBJS-y += clk.o
+
+ifdef CONFIG_SPL_BUILD
+COBJS-y += zynq_spl.o
+else
+COBJS-y += cpu.o
+
 endif
+
+SOBJS-y += lowlevel_init.o
 
 
 COBJS	:= $(COBJS-y)
 
-SRCS	:= $(COBJS:.o=.c)
-OBJS	:= $(addprefix $(obj),$(COBJS))
+SOBJS   := $(SOBJS-y)
+
+SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c) 
+OBJS	:= $(addprefix $(obj),$(SOBJS) $(COBJS))
 
 all:	$(obj)gen.stamp $(obj).depend $(LIB)
 
@@ -48,7 +56,7 @@ $(LIB): $(OBJS)
 	$(call cmd_link_o_target, $(OBJS))
 
 $(obj)gen.stamp: $(SRCTREE)/include/autoconf.mk
-	$(EZYNQCFG) -c $(SRCTREE)/include/autoconf.mk --lowlevel ezynq.c
+	$(EZYNQCFG) -c $(SRCTREE)/include/autoconf.mk --lowlevel zynq_spl.c
 	touch $(obj)gen.stamp
 #########################################################################
 

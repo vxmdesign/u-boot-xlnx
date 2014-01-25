@@ -2,23 +2,7 @@
  * (C) Copyright 2012 - 2013 Xilinx
  * (C) Copyright 2012 Michal Simek <monstr@monstr.eu>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CONFIG_ZYNQ_H
@@ -57,21 +41,13 @@
 #define CONFIG_BAUDRATE			115200
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 38400, 115200 }
 
-/* Zynq serial driver */
-#ifdef CONFIG_ZYNQ_SERIAL_UART0
-# define CONFIG_ZYNQ_SERIAL_BASEADDR0	0xE0000000
-# define CONFIG_ZYNQ_SERIAL_BAUDRATE0	CONFIG_BAUDRATE
-# define CONFIG_ZYNQ_SERIAL_CLOCK0	50000000
-#endif
-
-#ifdef CONFIG_ZYNQ_SERIAL_UART1
-# define CONFIG_ZYNQ_SERIAL_BASEADDR1	0xE0001000
-# define CONFIG_ZYNQ_SERIAL_BAUDRATE1	CONFIG_BAUDRATE
-# define CONFIG_ZYNQ_SERIAL_CLOCK1	50000000
-#endif
-
 #if defined(CONFIG_ZYNQ_SERIAL_UART0) || defined(CONFIG_ZYNQ_SERIAL_UART1)
 #define CONFIG_ZYNQ_SERIAL
+#endif
+
+#if defined(CONFIG_CMD_ZYNQ_RSA)
+#define CONFIG_SHA256
+#define CONFIG_CMD_ZYNQ_AES
 #endif
 
 /* DCC driver */
@@ -91,9 +67,6 @@
 # define CONFIG_SYS_ENET
 #endif
 
-#ifndef CONFIG_CPU_FREQ_HZ
-#define CONFIG_CPU_FREQ_HZ		800000000
-#endif
 #define CONFIG_SYS_HZ			1000
 
 /* Miscellaneous configurable options */
@@ -104,6 +77,8 @@
 #define CONFIG_CMDLINE_EDITING
 #define CONFIG_AUTO_COMPLETE
 #define CONFIG_SYS_LONGHELP
+#define CONFIG_CLOCKS
+#define CONFIG_CMD_CLK
 #define CONFIG_BOARD_LATE_INIT
 #define CONFIG_SYS_MAXARGS		32
 #define CONFIG_SYS_CBSIZE		2048
@@ -188,10 +163,11 @@
 /* I2C */
 #if defined(CONFIG_ZYNQ_I2C0) || defined(CONFIG_ZYNQ_I2C1)
 # define CONFIG_CMD_I2C
-# define CONFIG_ZYNQ_I2C
-# define CONFIG_HARD_I2C
-# define CONFIG_SYS_I2C_SPEED		100000
-# define CONFIG_SYS_I2C_SLAVE		1
+# define CONFIG_SYS_I2C
+# define CONFIG_SYS_I2C_ZYNQ
+/* # define CONFIG_SYS_I2C */
+# define CONFIG_SYS_I2C_ZYNQ_SPEED	100000
+# define CONFIG_SYS_I2C_ZYNQ_SLAVE	1
 #endif
 
 /* EEPROM */
@@ -219,7 +195,9 @@
 # endif
 
 # define CONFIG_ENV_SECT_SIZE		CONFIG_ENV_SIZE
+# ifndef CONFIG_ENV_OFFSET
 # define CONFIG_ENV_OFFSET		0xE0000
+# endif
 # define CONFIG_CMD_SAVEENV	/* Command to save ENV to Flash */
 #endif
 
@@ -236,11 +214,13 @@
 	"ramdisk_image=uramdisk.image.gz\0"	\
 	"devicetree_image=devicetree.dtb\0"	\
 	"bitstream_image=system.bit.bin\0"	\
+	"boot_image=BOOT.bin\0"	\
 	"loadbit_addr=0x100000\0"	\
 	"loadbootenv_addr=0x2000000\0" \
 	"kernel_size=0x500000\0"	\
 	"devicetree_size=0x20000\0"	\
 	"ramdisk_size=0x5E0000\0"	\
+	"boot_size=0xF00000\0"	\
 	"fdt_high=0x20000000\0"	\
 	"initrd_high=0x20000000\0"	\
 	"bootenv=uEnv.txt\0" \
@@ -291,10 +271,35 @@
 		"tftp 0x3000000 ${kernel_image} && " \
 		"tftp 0x2A00000 ${devicetree_image} && " \
 		"tftp 0x2000000 ${ramdisk_image} && " \
+		"bootm 0x3000000 0x2000000 0x2A00000\0" \
+	"rsa_norboot=echo Copying Image from NOR flash to RAM... && " \
+		"cp.b 0xE2100000 0x100000 ${boot_size} && " \
+		"zynqrsa 0x100000 && " \
+		"bootm 0x3000000 0x2000000 0x2A00000\0" \
+	"rsa_nandboot=echo Copying Image from NAND flash to RAM... && " \
+		"nand read 0x100000 0x0 ${boot_size} && " \
+		"zynqrsa 0x100000 && " \
+		"bootm 0x3000000 0x2000000 0x2A00000\0" \
+	"rsa_qspiboot=echo Copying Image from QSPI flash to RAM... && " \
+		"sf probe 0 0 0 && " \
+		"sf read 0x100000 0x0 ${boot_size} && " \
+		"zynqrsa 0x100000 && " \
+		"bootm 0x3000000 0x2000000 0x2A00000\0" \
+	"rsa_sdboot=echo Copying Image from SD to RAM... && " \
+		"fatload mmc 0 0x100000 ${boot_image} && " \
+		"zynqrsa 0x100000 && " \
+		"bootm 0x3000000 0x2000000 0x2A00000\0" \
+	"rsa_jtagboot=echo TFTPing Image to RAM... && " \
+		"tftp 0x100000 ${boot_image} && " \
+		"zynqrsa 0x100000 && " \
 		"bootm 0x3000000 0x2000000 0x2A00000\0"
 
 /* default boot is according to the bootmode switch settings */
+#if defined(CONFIG_CMD_ZYNQ_RSA)
+#define CONFIG_BOOTCOMMAND		"run rsa_$modeboot"
+#else
 #define CONFIG_BOOTCOMMAND		"run $modeboot"
+#endif
 #define CONFIG_BOOTDELAY		3 /* -1 to Disable autoboot */
 #define CONFIG_SYS_LOAD_ADDR		0 /* default? */
 

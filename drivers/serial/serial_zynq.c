@@ -2,23 +2,7 @@
  * Copyright (C) 2012 Michal Simek <monstr@monstr.eu>
  * Copyright (C) 2011-2012 Xilinx, Inc. All rights reserved.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -26,6 +10,8 @@
 #include <asm/io.h>
 #include <linux/compiler.h>
 #include <serial.h>
+#include <asm/arch/clk.h>
+#include <asm/arch/hardware.h>
 
 #define ZYNQ_UART_SR_TXFULL	0x00000010 /* TX FIFO full */
 #define ZYNQ_UART_SR_RXEMPTY	0x00000002 /* RX FIFO empty */
@@ -36,10 +22,6 @@
 #define ZYNQ_UART_CR_RXRST	0x00000001 /* RX logic reset */
 
 #define ZYNQ_UART_MR_PARITY_NONE	0x00000020  /* No parity mode */
-
-/* Some clock/baud constants */
-#define ZYNQ_UART_BDIV	15 /* Default/reset BDIV value */
-#define ZYNQ_UART_BASECLK	3125000L /* master / (bdiv + 1) */
 
 struct uart_zynq {
 	u32 control; /* Control Register [8:0] */
@@ -53,28 +35,24 @@ struct uart_zynq {
 };
 
 static struct uart_zynq *uart_zynq_ports[2] = {
-#ifdef CONFIG_ZYNQ_SERIAL_BASEADDR0
-	[0] = (struct uart_zynq *)CONFIG_ZYNQ_SERIAL_BASEADDR0,
-#endif
-#ifdef CONFIG_ZYNQ_SERIAL_BASEADDR1
-	[1] = (struct uart_zynq *)CONFIG_ZYNQ_SERIAL_BASEADDR1,
-#endif
+	[0] = (struct uart_zynq *)ZYNQ_SERIAL_BASEADDR0,
+	[1] = (struct uart_zynq *)ZYNQ_SERIAL_BASEADDR1,
 };
+
+#if !defined(CONFIG_ZYNQ_SERIAL_BAUDRATE0)
+# define CONFIG_ZYNQ_SERIAL_BAUDRATE0	CONFIG_BAUDRATE
+#endif
+#if !defined(CONFIG_ZYNQ_SERIAL_BAUDRATE1)
+# define CONFIG_ZYNQ_SERIAL_BAUDRATE1	CONFIG_BAUDRATE
+#endif
 
 struct uart_zynq_params {
 	u32 baudrate;
-	u32 clock;
 };
 
 static struct uart_zynq_params uart_zynq_ports_param[2] = {
-#if defined(CONFIG_ZYNQ_SERIAL_BAUDRATE0) && defined(CONFIG_ZYNQ_SERIAL_CLOCK0)
 	[0].baudrate = CONFIG_ZYNQ_SERIAL_BAUDRATE0,
-	[0].clock = CONFIG_ZYNQ_SERIAL_CLOCK0,
-#endif
-#if defined(CONFIG_ZYNQ_SERIAL_BAUDRATE1) && defined(CONFIG_ZYNQ_SERIAL_CLOCK1)
 	[1].baudrate = CONFIG_ZYNQ_SERIAL_BAUDRATE1,
-	[1].clock = CONFIG_ZYNQ_SERIAL_CLOCK1,
-#endif
 };
 
 /* Set up the baud rate in gd struct */
@@ -84,7 +62,7 @@ static void uart_zynq_serial_setbrg(const int port)
 	unsigned int calc_bauderror, bdiv, bgen;
 	unsigned long calc_baud = 0;
 	unsigned long baud = uart_zynq_ports_param[port].baudrate;
-	unsigned long clock = uart_zynq_ports_param[port].clock;
+	unsigned long clock = get_uart_clk(port);
 	struct uart_zynq *regs = uart_zynq_ports[port];
 
 	/*                master clock
@@ -206,20 +184,19 @@ struct serial_device uart_zynq_serial1_device =
 
 __weak struct serial_device *default_serial_console(void)
 {
+#if defined(CONFIG_ZYNQ_SERIAL_UART0)
 	if (uart_zynq_ports[0])
 		return &uart_zynq_serial0_device;
+#endif
+#if defined(CONFIG_ZYNQ_SERIAL_UART1)
 	if (uart_zynq_ports[1])
 		return &uart_zynq_serial1_device;
-
+#endif
 	return NULL;
 }
 
 void zynq_serial_initalize(void)
 {
-#ifdef CONFIG_ZYNQ_SERIAL_BASEADDR0
 	serial_register(&uart_zynq_serial0_device);
-#endif
-#ifdef CONFIG_ZYNQ_SERIAL_BASEADDR1
 	serial_register(&uart_zynq_serial1_device);
-#endif
 }

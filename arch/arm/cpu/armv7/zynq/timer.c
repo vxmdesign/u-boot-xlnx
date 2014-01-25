@@ -22,29 +22,14 @@
  * Sysgo Real-Time Solutions, GmbH <www.elinos.com>
  * Alex Zuepke <azu@sysgo.de>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
 #include <div64.h>
 #include <asm/io.h>
 #include <asm/arch/hardware.h>
+#include <asm/arch/clk.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -64,13 +49,14 @@ static struct scu_timer *timer_base =
 
 #define TIMER_LOAD_VAL 0xFFFFFFFF
 #define TIMER_PRESCALE 255
-#define TIMER_TICK_HZ  (CONFIG_CPU_FREQ_HZ / 2 / TIMER_PRESCALE)
 
 int timer_init(void)
 {
 	const u32 emask = SCUTIMER_CONTROL_AUTO_RELOAD_MASK |
 			(TIMER_PRESCALE << SCUTIMER_CONTROL_PRESCALER_SHIFT) |
 			SCUTIMER_CONTROL_ENABLE_MASK;
+
+	gd->arch.timer_rate_hz = (gd->cpu_clk / 2) / (TIMER_PRESCALE + 1);
 
 	/* Load the timer counter register */
 	writel(0xFFFFFFFF, &timer_base->load);
@@ -85,7 +71,7 @@ int timer_init(void)
 
 	/* Reset time */
 	gd->arch.lastinc = readl(&timer_base->counter) /
-					(TIMER_TICK_HZ / CONFIG_SYS_HZ);
+				(gd->arch.timer_rate_hz / CONFIG_SYS_HZ);
 	gd->arch.tbl = 0;
 
 	return 0;
@@ -99,14 +85,15 @@ ulong get_timer_masked(void)
 {
 	ulong now;
 
-	now = readl(&timer_base->counter) / (TIMER_TICK_HZ / CONFIG_SYS_HZ);
+	now = readl(&timer_base->counter) /
+			(gd->arch.timer_rate_hz / CONFIG_SYS_HZ);
 
 	if (gd->arch.lastinc >= now) {
 		/* Normal mode */
 		gd->arch.tbl += gd->arch.lastinc - now;
 	} else {
 		/* We have an overflow ... */
-		gd->arch.tbl += gd->arch.lastinc + TIMER_LOAD_VAL - now;
+		gd->arch.tbl += gd->arch.lastinc + TIMER_LOAD_VAL - now + 1;
 	}
 	gd->arch.lastinc = now;
 
@@ -123,7 +110,7 @@ void __udelay(unsigned long usec)
 	if (usec == 0)
 		return;
 
-	countticks = (u32) (((unsigned long long) TIMER_TICK_HZ * usec) /
+	countticks = (u32)(((unsigned long long)gd->arch.timer_rate_hz * usec) /
 								1000000);
 
 	/* decrementing timer */

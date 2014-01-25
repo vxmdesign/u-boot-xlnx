@@ -23,7 +23,7 @@
 
 #define CONFIG_ZYNQ_SERIAL_UART1
 #if 1
-//#define CONFIG_ZYNQ_GEM0
+/*#define CONFIG_ZYNQ_GEM0*/
 #define CONFIG_ZYNQ_GEM_PHY_ADDR0	0
 #endif
 
@@ -72,7 +72,7 @@
 #if 0
   #define CONFIG_SYS_TEXT_BASE		0x04000000 /*with 0x04000000 - does not get to the low_Level_init? */
 #else
-#define CONFIG_SYS_TEXT_BASE		0x00000000
+#define CONFIG_SYS_TEXT_BASE		0x00050000
 #endif
 /*
 #define CONFIG_EZYNQ_SKIP_DDR
@@ -103,7 +103,7 @@
 
 #undef CONFIG_CMD_CACHE
 
-#undef DEBUG
+/*#undef DEBUG*/
 #undef CONFIG_AUTO_COMPLETE
 #undef CONFIG_SYS_LONGHELP
 
@@ -127,10 +127,10 @@
 		"fpga load 0 ${loadbit_addr} ${filesize}\0" \
 	"sdboot=echo Copying Linux from SD to RAM... && " \
 		"mmcinfo && " \
-		"fatload mmc 0 0x00100000 ${kernel_image} && " \
-		"fatload mmc 0 0x00600000 ${devicetree_image} && " \
-		"fatload mmc 0 0x01000000 ${ramdisk_image} && " \
-		"bootm 0x00100000 0x01000000 0x00600000\0" \
+		"fatload mmc 0 0x3F00000 ${kernel_image} && " \
+		"fatload mmc 0 0x3E00000 ${devicetree_image} && " \
+		"fatload mmc 0 0x2000000 ${ramdisk_image} && " \
+		"bootm 0x3F00000 0x2000000 0x3E00000\0" \
 	"nandboot=echo Copying Linux from NAND flash to RAM... && " \
 		"nand read 0x3000000 0x100000 ${kernel_size} && " \
 		"nand read 0x2A00000 0x600000 ${devicetree_size} && " \

@@ -1,23 +1,7 @@
 /*
  * (C) Copyright 2012 Michal Simek <monstr@monstr.eu>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CONFIG_ZYNQ_H
@@ -26,8 +10,6 @@
 #define CONFIG_ARMV7 /* This is an ARM V7 CPU core */
 #define CONFIG_ZYNQ
 
-/* CPU clock */
-#define CONFIG_CPU_FREQ_HZ	800000000
 #define CONFIG_SYS_HZ		1000
 
 /* Ram */
@@ -77,15 +59,24 @@
 /* I2C */
 #if defined(CONFIG_ZYNQ_I2C0) || defined(CONFIG_ZYNQ_I2C1)
 # define CONFIG_CMD_I2C
-# define CONFIG_ZYNQ_I2C
-# define CONFIG_HARD_I2C
-# define CONFIG_SYS_I2C_SPEED		100000
-# define CONFIG_SYS_I2C_SLAVE		1
+# define CONFIG_SYS_I2C
+# define CONFIG_SYS_I2C_ZYNQ
+# define CONFIG_SYS_I2C_ZYNQ_SPEED		100000
+# define CONFIG_SYS_I2C_ZYNQ_SLAVE		1
 #endif
 
 #if defined(CONFIG_ZYNQ_DCC)
 # define CONFIG_ARM_DCC
 # define CONFIG_CPU_V6 /* Required by CONFIG_ARM_DCC */
+#endif
+
+#define CONFIG_ZYNQ_SPI
+
+/* SPI */
+#ifdef CONFIG_ZYNQ_SPI
+# define CONFIG_SPI_FLASH
+# define CONFIG_SPI_FLASH_SST
+# define CONFIG_CMD_SF
 #endif
 
 /* Enable the PL to be downloaded */

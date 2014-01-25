@@ -2,7 +2,8 @@
  * Command for accessing SPI flash.
  *
  * Copyright (C) 2008 Atmel Corporation
- * Licensed under the GPL-2 or later.
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -152,18 +153,30 @@ static const char *spi_flash_update_block(struct spi_flash *flash, u32 offset,
 {
 	debug("offset=%#x, sector_size=%#x, len=%#zx\n",
 		offset, flash->sector_size, len);
-	if (spi_flash_read(flash, offset, len, cmp_buf))
+	/* Read the entire sector so to allow for rewriting */
+	if (spi_flash_read(flash, offset, flash->sector_size, cmp_buf))
 		return "read";
+	/* Compare only what is meaningful (len) */
 	if (memcmp(cmp_buf, buf, len) == 0) {
 		debug("Skip region %x size %zx: no change\n",
 			offset, len);
 		*skipped += len;
 		return NULL;
 	}
-	if (spi_flash_erase(flash, offset, len))
+	/* Erase the entire sector */
+	if (spi_flash_erase(flash, offset, flash->sector_size))
 		return "erase";
+	/* Write the initial part of the block from the source */
 	if (spi_flash_write(flash, offset, len, buf))
 		return "write";
+	/* If it's a partial sector, rewrite the existing part */
+	if (len != flash->sector_size) {
+		/* Rewrite the original data to the end of the sector */
+		if (spi_flash_write(flash, offset + len,
+				    flash->sector_size - len, &cmp_buf[len]))
+			return "write";
+	}
+
 	return NULL;
 }
 
@@ -262,9 +275,9 @@ static int do_spi_flash_read_write(int argc, char * const argv[])
 		return 1;
 	}
 
-	if (strcmp(argv[0], "update") == 0)
+	if (strcmp(argv[0], "update") == 0) {
 		ret = spi_flash_update(flash, offset, len, buf);
-	else if (strncmp(argv[0], "read", 4) == 0 ||
+	} else if (strncmp(argv[0], "read", 4) == 0 ||
 			strncmp(argv[0], "write", 5) == 0) {
 		int read;
 
@@ -470,7 +483,8 @@ static int do_spi_flash_test(int argc, char * const argv[])
 }
 #endif /* CONFIG_CMD_SF_TEST */
 
-static int do_spi_flash(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_spi_flash(cmd_tbl_t *cmdtp, int flag, int argc,
+			char * const argv[])
 {
 	const char *cmd;
 	int ret;

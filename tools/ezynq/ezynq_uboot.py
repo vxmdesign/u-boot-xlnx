@@ -130,9 +130,13 @@ class EzynqUBoot:
     # remove unneeded 
     include_section="""
 #include <common.h>
+#include <config.h>
+#include <spl.h>
 #include <asm/io.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/hardware.h>
+
+DECLARE_GLOBAL_DATA_PTR;
 
 """
     
@@ -589,6 +593,42 @@ void report_training(void)
 
         self.sections.append('ddrc_training')
 
+    def make_spl_cpu(self):
+        self.cfile+='''
+void reset_cpu(ulong addr){
+  zynq_slcr_cpu_reset();
+  while(1);
+}
+#ifndef CONFIG_SYS_DCACHE_OFF
+void enable_caches(void){
+  dcache_enable();
+}
+#endif
+void board_init_f(ulong dummy){
+  asm volatile("mov sp, %0\\n" : : "r"(CONFIG_SPL_STACK));
+  arch_cpu_init();
+  gd = &gdata;
+  console_init_f();
+  uart_puts("Arch init complete\\n\\r");
+  board_init_r(NULL,0);
+}
+u32 spl_boot_device(void){
+  return BOOT_DEVICE_MMC1;
+}
+u32 spl_boot_mode(void){
+  switch(spl_boot_device()){
+  case BOOT_DEVICE_MMC1:
+    return MMCSD_MODE_FAT;
+  case BOOT_DEVICE_MMC2:
+    return MMCSD_MODE_RAW;
+  default:
+    puts("spl error\\n");
+    hang();
+  }
+  return MMCSD_MODE_FAT;
+}
+'''
+
     def make_rbl_list(self,reg_set, res44, user_def):
         self.cfile+=''' /*rbl structure */
 typedef struct{
@@ -607,7 +647,7 @@ rblmap rbl_map[] __attribute__ ((unused,section(".rbl"))) = {
         self._add_rbl_table(reg_set)
         self.cfile+=''' }; 
 '''
-        self.cfile+='rblhead rbl_head[] __attribute__ ((unused,section(".rbl"))) = {0x%08x, 0x%08x, 0x%08x};\n'%(0xdeadbeef,res44,user_def)
+        self.cfile+='rblhead rbl_head __attribute__ ((unused,section(".rbl"))) = {0x%08x, 0x%08x, 0x%08x};\n'%(0xdeadbeef,res44,user_def)
     def make_arch_cpu_init(self):
         self.cfile+='''/* Initialize clocks, DDR memory, copy OCM to DDR */        
 int arch_cpu_init(void)
@@ -783,7 +823,7 @@ int arch_cpu_init(void)
 '''
 
         if ('uart_xmit' in self.sections) and self.features.get_par_value_or_none('LAST_PRINT_DEBUG'):
-            self.cfile+='\tuart_put_hex(0x12345678);\n'
+            self.cfile+='\tuart_put_hex(0x12335678);\n'
             self.cfile+='\tuart_putc(0xd);\n'
             self.cfile+='\tuart_putc(0xa);\n'
         if 'uart_xmit' in self.sections:

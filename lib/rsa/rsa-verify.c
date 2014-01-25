@@ -1,20 +1,7 @@
 /*
  * Copyright (c) 2013, Google Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -177,7 +164,7 @@ static void montgomery_mul(const struct rsa_public_key *key,
 	for (i = 0; i < key->len; ++i)
 		montgomery_mul_add_step(key, result, a[i], b);
 }
-
+#if IMAGE_ENABLE_VERIFY
 /**
  * pow_mod() - in-place public exponentiation
  *
@@ -382,4 +369,49 @@ int rsa_verify(struct image_sign_info *info,
 	}
 
 	return ret;
+}
+#endif
+
+/**
+ * zynq_pow_mod() - in-place public exponentiation
+ *
+ * @keyptr:	RSA key
+ * @inout:	Big-endian word array containing value and result
+ */
+int zynq_pow_mod(uint32_t *keyptr, uint32_t *inout)
+{
+	uint32_t *result, *ptr;
+	uint i;
+	struct rsa_public_key *key;
+
+	key = (struct rsa_public_key *)keyptr;
+
+	/* Sanity check for stack size - key->len is in 32-bit words */
+	if (key->len > RSA_MAX_KEY_BITS / 32) {
+		debug("RSA key words %u exceeds maximum %d\n", key->len,
+		      RSA_MAX_KEY_BITS / 32);
+		return -EINVAL;
+	}
+
+	uint32_t val[key->len], acc[key->len], tmp[key->len];
+	result = tmp;  /* Re-use location. */
+
+	for (i = 0, ptr = inout; i < key->len; i++, ptr++)
+		val[i] = *(ptr);
+
+	montgomery_mul(key, acc, val, key->rr);  /* axx = a * RR / R mod M */
+	for (i = 0; i < 16; i += 2) {
+		montgomery_mul(key, tmp, acc, acc); /* tmp = acc^2 / R mod M */
+		montgomery_mul(key, acc, tmp, tmp); /* acc = tmp^2 / R mod M */
+	}
+	montgomery_mul(key, result, acc, val);  /* result = XX * a / R mod M */
+
+	/* Make sure result < mod; result is at most 1x mod too large. */
+	if (greater_equal_modulus(key, result))
+		subtract_modulus(key, result);
+
+	for (i = 0, ptr = inout; i < key->len; i++, ptr++)
+		*ptr = result[i];
+
+	return 0;
 }

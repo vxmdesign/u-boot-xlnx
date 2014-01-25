@@ -23,6 +23,7 @@
 #define CONFIG_CMD_BSP		/* Board Specific functions	*/
 #define CONFIG_CMD_CACHE	/* icache, dcache		*/
 #define CONFIG_CMD_CDP		/* Cisco Discovery Protocol	*/
+#define CONFIG_CMD_CLK		/* Clock support		*/
 #define CONFIG_CMD_CONSOLE	/* coninfo			*/
 #define CONFIG_CMD_DATE		/* support for RTC, date/time...*/
 #define CONFIG_CMD_DHCP		/* DHCP Support			*/
@@ -96,5 +97,7 @@
 #define CONFIG_CMD_USB		/* USB Support			*/
 #define CONFIG_CMD_XIMG		/* Load part of Multi Image	*/
 #define CONFIG_CMD_ZFS		/* ZFS Support			*/
+#define CONFIG_CMD_ZYNQ_AES	/* AES support for Zynq		*/
+#define CONFIG_CMD_ZYNQ_RSA	/* RSA-AES support for Zynq	*/
 
 #endif	/* _CONFIG_CMD_ALL_H */

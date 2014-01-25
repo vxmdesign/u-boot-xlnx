@@ -595,5 +595,6 @@ if (args.lowlevel):
     if 'CONFIG_EZYNQ_RESERVED44' in raw_options: res44= int(raw_options['CONFIG_EZYNQ_RESERVED44'],0)    
     user_def =  int(raw_options['CONFIG_EZYNQ_BOOT_USERDEF'],0) # user_def 
     u_boot.make_rbl_list(reg_sets[:num_rbl_regs], res44 , user_def)
+    u_boot.make_spl_cpu()
     u_boot.output_c_file(args.lowlevel)
 #    print u_boot.get_c_file()

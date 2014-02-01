@@ -128,8 +128,8 @@ int sdhci_send_command(struct mmc *mmc, struct mmc_cmd *cmd,
 
 	/* We shouldn't wait for data inihibit for stop commands, even
 	   though they might use busy signaling */
-	if (cmd->cmdidx == MMC_CMD_STOP_TRANSMISSION)
-		mask &= ~SDHCI_DATA_INHIBIT;
+	//if (cmd->cmdidx == MMC_CMD_STOP_TRANSMISSION)
+	//	mask &= ~SDHCI_DATA_INHIBIT;
 
 	while (sdhci_readl(host, SDHCI_PRESENT_STATE) & mask) {
 		if (timeout == 0) {

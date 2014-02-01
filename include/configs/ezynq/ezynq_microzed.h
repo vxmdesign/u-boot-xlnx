@@ -244,25 +244,5 @@ Red LED - pullup, input - on,
   #define CONFIG_EZYNQ_PHY_PHY_CTRL_SLAVE_RATIO 0x80     /* Ratio for address/command (256 - clock period) */
   #define CONFIG_EZYNQ_PHY_INVERT_CLK             N     /* Invert CLK out (if clk can arrive to DRAM chip earlier/at the same time as DQS) */
 
-#define CONFIG_SPL
-#define CONFIG_SPL_MMC_SUPPORT
-#define CONFIG_SPL_FRAMEWORK
-#define CONFIG_SPL_FAT_SUPPORT
-#define CONFIG_SPL_LIBCOMMON_SUPPORT
-#define CONFIG_SPL_LIBGENERIC_SUPPORT
-#define CONFIG_SPL_LIBDISK_SUPPORT
-#define CONFIG_SPL_SERIAL_SUPPORT
-#define CONFIG_SPL_MMC_SD_FAT_BOOT_PARTITION 1
-#define CONFIG_SPL_FAT_LOAD_PAYLOAD_NAME "u-boot.img"
-#define CONFIG_SPL_TEXT_BASE 0x0
-#define CONFIG_SPL_MAX_SIZE 0x30000
-#define CONFIG_SPL_STACK 0x2FFFC
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR 0x300
-#define CONFIG_SYS_MMC_SD_FAT_BOOT_PARTITION 1
- 
-#define CONFIG_SYS_SPL_MALLOC_START 0x30000
-#define CONFIG_SYS_SPL_MALLOC_SIZE  0x10000
- 
-#define CONFIG_SPL_LDSCRIPT "$(CPUDIR)/zynq/u-boot-spl.lds"
 
 #endif /* __CONFIG_EZYNQ_H */

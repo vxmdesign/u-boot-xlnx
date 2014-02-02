@@ -121,6 +121,8 @@
 	"ramdisk_size=0x5E0000\0"	\
 	"fdt_high=0x20000000\0"	\
 	"initrd_high=0x20000000\0"	\
+	"ipaddr=192.168.1.10\0" \
+	"setboot=setenv bootargs console=ttyPS0,115200 root=/dev/ram rw ip=${ipaddr} ethaddr=${ethaddr} earlyprintk ${otherargs}\0"\
 	"mmc_loadbit_fat=echo Loading bitstream from SD/MMC/eMMC to RAM.. && " \
 		"mmcinfo && " \
 		"fatload mmc 0 ${loadbit_addr} ${bitstream_image} && " \
@@ -130,6 +132,7 @@
 		"fatload mmc 0 0x3F00000 ${kernel_image} && " \
 		"fatload mmc 0 0x3E00000 ${devicetree_image} && " \
 		"fatload mmc 0 0x2000000 ${ramdisk_image} && " \
+	        "run setboot && " \ 
 		"bootm 0x3F00000 0x2000000 0x3E00000\0" \
 	"nandboot=echo Copying Linux from NAND flash to RAM... && " \
 		"nand read 0x3000000 0x100000 ${kernel_size} && " \

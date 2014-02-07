@@ -180,6 +180,7 @@
 # define CONFIG_SYS_EEPROM_SIZE			1024 /* Bytes */
 #endif
 
+#if 0
 #ifndef CONFIG_ENV_IS_NOWHERE
 # ifndef CONFIG_SYS_NO_FLASH
 /* Environment in NOR flash */
@@ -190,7 +191,7 @@
 # elif defined(CONFIG_NAND_ZYNQ)
 /* Environment in NAND flash */
 #  define CONFIG_ENV_IS_IN_NAND
-/*# elif defined(CONFIG_SYS_NO_FLASH)
+# elif defined(CONFIG_SYS_NO_FLASH)
   #  define CONFIG_ENV_IS_NOWHERE*/
 # endif
 
@@ -199,6 +200,7 @@
 # define CONFIG_ENV_OFFSET		0xE0000
 # endif
 # define CONFIG_CMD_SAVEENV	/* Command to save ENV to Flash */
+#endif
 #endif
 
 /* For development/debugging */
